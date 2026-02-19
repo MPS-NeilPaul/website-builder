@@ -2,21 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* LIGHT MODE VARIABLES */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  
+  /* Default Primary Color (A rich, professional blue) */
+  --primary: #2563eb; 
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* DARK MODE VARIABLES (Triggered by the ThemeToggle button) */
+.dark {
+  --background: #030712; /* Deep modern black (Tailwind gray-950) */
+  --foreground: #f9fafb; /* Crisp white text (Tailwind gray-50) */
+  
+  /* Slightly brighter primary color so it pops on dark backgrounds */
+  --primary: #3b82f6; 
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
+  /* The transition makes the switch between dark and light mode smooth */
+  transition: background-color 0.2s ease, color 0.2s ease;
   font-family: Arial, Helvetica, sans-serif;
 }
 
