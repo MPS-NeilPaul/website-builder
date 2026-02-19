@@ -1,0 +1,263 @@
+// We are using the stable 5.x Prisma client for maximum compatibility and performance.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// 1. CORE MULTI-TENANCY & AUTHENTICATION
+// -----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  SELLER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? // NextAuth requirement
+  image         String?   // NextAuth requirement
+  password      String?   // Hashed, if using email/password auth
+  role          Role      @default(USER)
+  
+  accounts      Account[] // NextAuth requirement
+  sessions      Session[] // NextAuth requirement
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sites         Site[]
+  subscription  Subscription?
+}
+
+// --- NextAuth Required Models ---
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// -----------------------------------------------------------------------------
+// 2. SUBSCRIPTION & RESOURCE QUOTAS
+// -----------------------------------------------------------------------------
+
+enum PlanTier {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tier                 PlanTier @default(FREE)
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  
+  // Quota Tracking
+  storageUsedMB        Float    @default(0)    // Syncs with GCS bucket size
+  storageLimitMB       Float    @default(500)  
+  aiTokensUsed         Int      @default(0)    // Tracks Vertex AI usage
+  aiTokenLimit         Int      @default(10000)
+
+  isActive             Boolean  @default(true)
+  billingCycleEnd      DateTime?
+}
+
+// -----------------------------------------------------------------------------
+// 3. SITE ENGINE & GOOGLE INTEGRATIONS
+// -----------------------------------------------------------------------------
+
+model Site {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name            String
+  subdomain       String   @unique // e.g., "bakery" -> bakery.myapp.com
+  customDomain    String?  @unique // e.g., "mybakery.com"
+  
+  // Google API OAuth Tokens (Encrypted before saving)
+  gcpRefreshToken String?  
+  gaPropertyId    String?  // Google Analytics 4
+  gscSiteUrl      String?  // Google Search Console 
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  pages           Page[]
+  posts           Post[]
+  categories      Category[]
+  forms           Form[]
+  globalStyles    GlobalStyle?
+  metricsSnapshot AnalyticsSnapshot[] 
+}
+
+// -----------------------------------------------------------------------------
+// 4. THE BUILDER (PAGES, POSTS & AI SEO)
+// -----------------------------------------------------------------------------
+
+enum PageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model Page {
+  id               String     @id @default(cuid())
+  siteId           String
+  site             Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  title            String
+  slug             String     // e.g., "/about-us"
+  content          Json       // The drag-and-drop tree (Modules, Rows, Columns)
+  status           PageStatus @default(DRAFT)
+  
+  // AI & SEO Innovation Engine
+  aiSeoScore       Int        @default(0) // 0-100 real-time score
+  metaTitle        String?
+  metaDescription  String?
+  focusKeywords    String[]
+  schemaMarkup     Json?    // Auto-generated JSON-LD
+  
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([siteId, slug]) // A site cannot have two pages with the same slug
+}
+
+model Post {
+  id               String     @id @default(cuid())
+  siteId           String
+  site             Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  categoryId       String?
+  category         Category?  @relation(fields: [categoryId], references: [id])
+  
+  title            String
+  slug             String
+  excerpt          String?
+  featuredImage    String?  // GCS URL
+  content          Json       // Drag-and-drop content structure
+  status           PageStatus @default(DRAFT)
+  
+  aiSeoScore       Int        @default(0)
+  metaTitle        String?
+  metaDescription  String?
+  schemaMarkup     Json?
+  
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([siteId, slug])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  posts     Post[]
+
+  @@unique([siteId, slug])
+}
+
+// -----------------------------------------------------------------------------
+// 5. GLOBAL STYLES & DYNAMIC CSS
+// -----------------------------------------------------------------------------
+
+model GlobalStyle {
+  id              String  @id @default(cuid())
+  siteId          String  @unique
+  site            Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  // CSS Variables Stored as JSON
+  colorPalette    Json?  // e.g., { primary: "#ff0000", secondary: "#00ff00" }
+  typography      Json?  // e.g., { h1Font: "Inter", bodyFont: "Roboto" }
+  
+  // Override code editor
+  customCssString String? @db.Text
+}
+
+// -----------------------------------------------------------------------------
+// 6. CUSTOM FORMS & SUBMISSIONS
+// -----------------------------------------------------------------------------
+
+model Form {
+  id          String   @id @default(cuid())
+  siteId      String
+  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  name        String
+  shortcode   String   @unique // e.g., "[form_123]"
+  fields      Json     // The configuration of inputs, checkboxes, etc.
+  notifyEmail String?  // Where to send the alert via Cloud Tasks
+  
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  data      Json     // The actual data the visitor submitted
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// 7. SELLER DASHBOARD (DAILY METRICS ENGINE)
+// -----------------------------------------------------------------------------
+
+model AnalyticsSnapshot {
+  id             String   @id @default(cuid())
+  siteId         String
+  site           Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  date           DateTime // The day this snapshot represents
+  pageViews      Int      @default(0)
+  uniqueUsers    Int      @default(0)
+  bounceRate     Float    @default(0.0)
+  clicksGsc      Int      @default(0)
+  impressionsGsc Int      @default(0)
+
+  @@unique([siteId, date]) // Only one snapshot per day per site
+}
