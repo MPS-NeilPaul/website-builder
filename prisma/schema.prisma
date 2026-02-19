@@ -93,14 +93,15 @@ model Subscription {
   userId               String   @unique
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  tier                 PlanTier @default(FREE)
+  tier                 PlanTier @default(STARTER) // Changed default to Starter
   stripeCustomerId     String?  @unique
   stripeSubscriptionId String?  @unique
   
   // Quota Tracking
-  storageUsedMB        Float    @default(0)    // Syncs with GCS bucket size
-  storageLimitMB       Float    @default(500)  
-  aiTokensUsed         Int      @default(0)    // Tracks Vertex AI usage
+  siteLimit            Int      @default(1)    // <-- ADD THIS LINE
+  storageUsedMB        Float    @default(0)    
+  storageLimitMB       Float    @default(5000) // Changed to 5GB for Starter
+  aiTokensUsed         Int      @default(0)    
   aiTokenLimit         Int      @default(10000)
 
   isActive             Boolean  @default(true)

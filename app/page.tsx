@@ -1,84 +1,130 @@
 import React from "react";
 import Link from "next/link";
-import { Zap, Shield, Sparkles, ArrowRight } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { Zap, Shield, Sparkles, ArrowRight, LayoutTemplate, Cpu, Layers } from "lucide-react";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  // DYNAMIC AUTH CHECK: Determines what buttons the user sees
+  const session = await getServerSession(authOptions);
+  const isLoggedIn = !!session?.user;
+
   return (
-    <div className="flex flex-col min-h-screen bg-white text-gray-900">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-8 py-6 border-b border-gray-50">
-        <div className="flex items-center gap-2 font-bold text-2xl text-blue-600">
-          <Zap className="fill-current" />
-          <span>Royalty Builder</span>
+    <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white selection:bg-blue-500/30">
+      {/* Premium Navigation */}
+      <nav className="flex items-center justify-between px-6 py-5 sm:px-12 border-b border-white/5 backdrop-blur-md sticky top-0 z-50 bg-[#0a0a0a]/80">
+        <div className="flex items-center gap-2 font-black text-2xl tracking-tighter">
+          <Zap className="h-6 w-6 text-blue-500 fill-blue-500" />
+          <span>ApexBuilder</span>
         </div>
-        <div className="flex gap-4">
-          <Link 
-            href="/dashboard" 
-            className="px-5 py-2 rounded-full font-medium text-gray-600 hover:text-blue-600 transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link 
-            href="/dashboard" 
-            className="px-5 py-2 rounded-full bg-blue-600 text-white font-medium hover:bg-blue-700 transition-shadow shadow-lg shadow-blue-200"
-          >
-            Go to Dashboard
-          </Link>
+        <div className="flex items-center gap-6 text-sm font-medium">
+          {isLoggedIn ? (
+            <Link 
+              href="/dashboard" 
+              className="px-6 py-2.5 rounded-full bg-white text-black hover:bg-gray-200 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+            >
+              Go to Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                Sign In
+              </Link>
+              <Link 
+                href="/dashboard" 
+                className="px-6 py-2.5 rounded-full bg-blue-600 text-white hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 
-      {/* Hero Section */}
       <main className="flex-1">
-        <section className="px-8 py-24 text-center max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider mb-6">
-            <Sparkles className="h-3 w-3" />
-            Next-Gen AI Website Builder
+        {/* Hero Section */}
+        <section className="relative px-6 pt-32 pb-20 sm:px-12 text-center max-w-5xl mx-auto flex flex-col items-center">
+          {/* Glowing Background Effect */}
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-blue-400 text-xs font-bold uppercase tracking-widest mb-8 backdrop-blur-sm">
+            <Sparkles className="h-3.5 w-3.5" />
+            The Ultimate Agency Platform
           </div>
-          <h1 className="text-6xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-blue-800 to-gray-900">
-            Build sites that think, <br /> learn, and sell for you.
+          
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-8 leading-[1.1] uppercase">
+            DEPLOY HIGH PERFORMANCE <br className="hidden sm:block" /> 
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">WEB PLATFORMS</span> AT SCALE.
           </h1>
-          <p className="text-xl text-gray-500 mb-10 leading-relaxed">
-            The world's first multi-tenant engine with integrated AI insights. 
-            Deploy infinite professional sites on a rock-solid infrastructure in seconds.
+          
+          <p className="text-lg sm:text-xl text-gray-400 mb-12 max-w-2xl leading-relaxed">
+            Leave outdated slow builders & websites behind. Provision lightning-fast, AI-optimized sites on enterprise-grade infrastructure that auto scales. Built for modern business's & primarily optimised for SEO.
           </p>
-          <div className="flex items-center justify-center gap-4">
-            <Link href="/dashboard" className="flex items-center gap-2 px-8 py-4 rounded-xl bg-gray-900 text-white font-bold hover:bg-black transition-all">
-              Start Building Free <ArrowRight className="h-5 w-5" />
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
+            <Link 
+              href="/dashboard" 
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 hover:scale-105 transition-all shadow-[0_0_30px_rgba(37,99,235,0.4)]"
+            >
+              Start Building Now <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link 
+              href="#features" 
+              className="w-full sm:w-auto flex items-center justify-center px-8 py-4 rounded-xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all border border-white/10"
+            >
+              Explore Infrastructure
             </Link>
           </div>
         </section>
 
         {/* Feature Grid */}
-        <section className="px-8 py-20 bg-gray-50">
-          <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
-            <div className="p-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 mb-4">
-                <Zap className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg mb-2">Instant Multi-Tenancy</h3>
-              <p className="text-gray-500 text-sm">Spin up new subdomains or custom domains instantly with our high-speed routing engine.</p>
+        <section id="features" className="px-6 py-32 sm:px-12 bg-black relative border-t border-white/5">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-16">
+              <h2 className="text-3xl sm:text-5xl font-bold mb-4">Engineered for dominance.</h2>
+              <p className="text-gray-400 text-lg">Everything you need to run a high-performance web agency out of the box.</p>
             </div>
-            <div className="p-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 mb-4">
-                <Sparkles className="h-6 w-6" />
+
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="p-8 bg-[#111] rounded-3xl border border-white/5 hover:border-blue-500/30 transition-colors group">
+                <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Layers className="h-7 w-7" />
+                </div>
+                <h3 className="font-bold text-xl mb-3 text-white">Agency Multi-Tenancy</h3>
+                <p className="text-gray-400 leading-relaxed">Manage infinite client subdomains and custom domains from a single, unified command center.</p>
               </div>
-              <h3 className="font-bold text-lg mb-2">AI Optimization</h3>
-              <p className="text-gray-500 text-sm">Automated SEO, image compression, and content generation powered by advanced LLMs.</p>
-            </div>
-            <div className="p-8 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600 mb-4">
-                <Shield className="h-6 w-6" />
+
+              <div className="p-8 bg-[#111] rounded-3xl border border-white/5 hover:border-indigo-500/30 transition-colors group">
+                <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Cpu className="h-7 w-7" />
+                </div>
+                <h3 className="font-bold text-xl mb-3 text-white">Native Generative AI</h3>
+                <p className="text-gray-400 leading-relaxed">Our integrated LLMs generate highly-converting copy, optimize SEO, and structure your pages automatically.</p>
               </div>
-              <h3 className="font-bold text-lg mb-2">Enterprise Security</h3>
-              <p className="text-gray-500 text-sm">Google Cloud SQL backends with enforced SSL encryption and isolated tenant data.</p>
+
+              <div className="p-8 bg-[#111] rounded-3xl border border-white/5 hover:border-emerald-500/30 transition-colors group">
+                <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-6 group-hover:scale-110 transition-transform">
+                  <Shield className="h-7 w-7" />
+                </div>
+                <h3 className="font-bold text-xl mb-3 text-white">Edge-Optimized Security</h3>
+                <p className="text-gray-400 leading-relaxed">Built on Google Cloud with strict database isolation, instant SSL provisioning, and global CDN routing.</p>
+              </div>
             </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="py-10 px-8 border-t border-gray-100 text-center text-gray-400 text-sm">
-        © 2026 Royalty Solutions. Built with Next.js & Prisma.
+      <footer className="py-12 px-6 sm:px-12 border-t border-white/5 bg-[#0a0a0a]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 font-bold text-lg text-gray-300">
+            <Zap className="h-5 w-5 text-blue-500 fill-blue-500" />
+            <span>ApexBuilder</span>
+          </div>
+          <p className="text-gray-500 text-sm">
+            © 2026 ApexBuilder Solutions. Next-Gen Architecture.
+          </p>
+        </div>
       </footer>
     </div>
   );

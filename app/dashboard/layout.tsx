@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma"; // Added to fetch the user's saved theme
+import { prisma } from "@/lib/prisma";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { 
   LayoutDashboard, 
@@ -29,15 +29,30 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await getServerSession(authOptions);
 
   // 2. If they are not logged in, violently kick them back to the login page
-  if (!session?.user) {
+  if (!session?.user?.email) {
     redirect("/login");
   }
 
-  // 3. FETCH SAVED USER PREFERENCES FROM THE DATABASE
+  // 3. FETCH SAVED USER PREFERENCES, SUBSCRIPTION, AND SITES
   const userSettings = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: { dashboardTheme: true, name: true, email: true }
+    where: { email: session.user.email },
+    select: { 
+      dashboardTheme: true, 
+      name: true, 
+      email: true,
+      subscription: true, // We need this to check their tier
+      sites: { take: 1 }  // We just need to know if they have at least one site
+    }
   });
+
+  // 4. THE BOUNCER: Enforce the Onboarding Flow globally
+  if (!userSettings?.subscription) {
+    redirect("/select-plan"); // No plan selected? Kick to pricing.
+  }
+
+  if (!userSettings?.sites || userSettings.sites.length === 0) {
+    redirect("/onboarding"); // No site built? Kick to AI wizard.
+  }
 
   // Default to our professional blue if the DB field is empty
   const activeTheme = userSettings?.dashboardTheme || "#2563eb";
